@@ -805,7 +805,7 @@ class MusicBrowser:
         self.deactivate_search_bar()
 
     def exit_search(self):
-        if self._pre_search_mode is None:
+        if self._pre_search_body is None:
             return
         self.main_layout.body = self._pre_search_body
         self.mode = self._pre_search_mode
