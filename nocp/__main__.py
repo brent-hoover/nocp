@@ -720,6 +720,8 @@ class MusicBrowser:
         self.loop.widget = overlay
 
     def activate_search_bar(self):
+        if self.mode == "searching":
+            return
         self._pre_search_mode = self.mode
         self.search_edit = urwid.Edit("Search: ")
         self.main_layout.footer = urwid.LineBox(self.search_edit)
@@ -727,6 +729,8 @@ class MusicBrowser:
         self.mode = "searching"
 
     def deactivate_search_bar(self):
+        if self._pre_search_mode is None:
+            return
         self.main_layout.footer = urwid.LineBox(self.footer_columns)
         self.main_layout.focus_position = 'body'
         self.mode = self._pre_search_mode
