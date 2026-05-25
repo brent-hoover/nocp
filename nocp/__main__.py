@@ -389,6 +389,7 @@ class MusicBrowser:
         self.player = None
         self.search_edit = None
         self._pre_search_mode = None
+        self._pre_search_body = None
 
         self.left_panel = urwid.LineBox(self.artist_listbox, title="🎤 " + _("Artists"))
         self.top_right = urwid.LineBox(self.album_listbox, title="💿 " + _("Albums"))
@@ -618,7 +619,14 @@ class MusicBrowser:
                 elif self.mode == "podcast":
                     self.move_podcast_focus(1)
             elif key == 'enter':
-                self.trigger_selection()
+                if self.mode == "searching":
+                    query = self.search_edit.get_edit_text().strip()
+                    if query:
+                        self.submit_search(query)
+                    else:
+                        self.deactivate_search_bar()
+                else:
+                    self.trigger_selection()
             elif key.lower() == 'v':
                 self.show_volume_gauge()
             elif key.lower() == 'r':
@@ -642,6 +650,8 @@ class MusicBrowser:
             elif key == 'esc':
                 if self.mode == "searching":
                     self.deactivate_search_bar()
+                elif self.mode == "search":
+                    self.exit_search()
             elif key == ' ':
                 if self.player:
                     state = self.player.get_state()
@@ -735,6 +745,76 @@ class MusicBrowser:
         self.main_layout.focus_position = 'body'
         self.mode = self._pre_search_mode
         self.search_edit = None
+
+    def _build_search_results(self, data: dict) -> urwid.ListBox:
+        result3 = data.get('subsonic-response', {}).get('searchResult3', {})
+        items = []
+
+        artists = result3.get('artist', [])
+        if artists:
+            items.append(urwid.Text("── " + _("Artists") + " ──"))
+            for a in artists:
+                artist = Artist(nav=self.nav, **a)
+                btn = PlainButton(urwid.Text(artist.name),
+                                  on_press=self.on_search_artist_selected,
+                                  user_data=artist)
+                items.append(btn)
+
+        albums = result3.get('album', [])
+        if albums:
+            items.append(urwid.Text("── " + _("Albums") + " ──"))
+            for a in albums:
+                album = Album(nav=self.nav, **a)
+                btn = PlainButton(urwid.Text(album.name),
+                                  on_press=self.on_search_album_selected,
+                                  user_data=album)
+                items.append(btn)
+
+        songs = result3.get('song', [])
+        if songs:
+            items.append(urwid.Text("── " + _("Songs") + " ──"))
+            for s in songs:
+                song = Song(nav=self.nav, prev=None, next=None, **s)
+                row = urwid.Columns([
+                    urwid.Text(song.title),
+                    urwid.Text(song.timer, align='right'),
+                ])
+                btn = PlainButton(row,
+                                  on_press=self.on_search_song_selected,
+                                  user_data=song)
+                items.append(btn)
+
+        if not items:
+            items.append(urwid.Text(_("No results found")))
+
+        return urwid.ListBox(urwid.SimpleFocusListWalker(items))
+
+    def submit_search(self, query: str):
+        data = self.nav.search(query)
+        self._pre_search_body = self.main_layout.body
+        results = self._build_search_results(data)
+        self.main_layout.body = urwid.LineBox(results, title=_("Search: ") + query)
+        self.mode = "search"
+        self.deactivate_search_bar()
+
+    def exit_search(self):
+        self.main_layout.body = self._pre_search_body
+        self.mode = self._pre_search_mode
+        self._pre_search_body = None
+
+    def on_search_artist_selected(self, button, artist):
+        self.exit_search()
+        self.on_artist_selected(None, artist)
+        self.switch_to_music_view()
+
+    def on_search_album_selected(self, button, album):
+        self.exit_search()
+        self.on_album_selected(None, album)
+        self.switch_to_music_view()
+
+    def on_search_song_selected(self, button, song):
+        self.current_song = song
+        self.play_song()
 
     def run(self):
         self.loop.run()
