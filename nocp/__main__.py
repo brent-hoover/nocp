@@ -387,6 +387,8 @@ class MusicBrowser:
 
         self.focus_list = [self.artist_listbox, self.album_listbox, self.song_listbox]
         self.player = None
+        self.search_edit = None
+        self._pre_search_mode = None
 
         self.left_panel = urwid.LineBox(self.artist_listbox, title="🎤 " + _("Artists"))
         self.top_right = urwid.LineBox(self.album_listbox, title="💿 " + _("Albums"))
@@ -635,6 +637,11 @@ class MusicBrowser:
                 self.switch_to_podcast_view()
             elif key.lower() == 'd':
                 self.download_selected_item()
+            elif key == '/':
+                self.activate_search_bar()
+            elif key == 'esc':
+                if self.mode == "searching":
+                    self.deactivate_search_bar()
             elif key == ' ':
                 if self.player:
                     state = self.player.get_state()
@@ -711,6 +718,19 @@ class MusicBrowser:
         gauge = VolumeGauge(on_exit=exit_gauge, on_change=on_change_volume, initial=volume)
         overlay = urwid.Overlay(gauge, self.main_layout, 'center', 20, 'middle', 25)
         self.loop.widget = overlay
+
+    def activate_search_bar(self):
+        self._pre_search_mode = self.mode
+        self.search_edit = urwid.Edit("Search: ")
+        self.main_layout.footer = urwid.LineBox(self.search_edit)
+        self.main_layout.focus_position = 'footer'
+        self.mode = "searching"
+
+    def deactivate_search_bar(self):
+        self.main_layout.footer = urwid.LineBox(self.footer_columns)
+        self.main_layout.focus_position = 'body'
+        self.mode = self._pre_search_mode
+        self.search_edit = None
 
     def run(self):
         self.loop.run()
