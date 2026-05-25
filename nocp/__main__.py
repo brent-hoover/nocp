@@ -744,6 +744,7 @@ class MusicBrowser:
         self.main_layout.footer = urwid.LineBox(self.footer_columns)
         self.main_layout.focus_position = 'body'
         self.mode = self._pre_search_mode
+        self._pre_search_mode = None
         self.search_edit = None
 
     def _build_search_results(self, data: dict) -> urwid.ListBox:
@@ -790,17 +791,26 @@ class MusicBrowser:
         return urwid.ListBox(urwid.SimpleFocusListWalker(items))
 
     def submit_search(self, query: str):
-        data = self.nav.search(query)
-        self._pre_search_body = self.main_layout.body
+        try:
+            data = self.nav.search(query)
+        except Exception as e:
+            self.footer_left.set_text("❌ " + _("Search error: {error}").format(error=str(e)))
+            self.deactivate_search_bar()
+            return
+        if self._pre_search_body is None:
+            self._pre_search_body = self.main_layout.body
         results = self._build_search_results(data)
         self.main_layout.body = urwid.LineBox(results, title=_("Search: ") + query)
         self.mode = "search"
         self.deactivate_search_bar()
 
     def exit_search(self):
+        if self._pre_search_mode is None:
+            return
         self.main_layout.body = self._pre_search_body
         self.mode = self._pre_search_mode
         self._pre_search_body = None
+        self._pre_search_mode = None
 
     def on_search_artist_selected(self, button, artist):
         self.exit_search()
