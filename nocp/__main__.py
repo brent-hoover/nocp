@@ -88,7 +88,7 @@ class Song(Generic):
     def streamUrl(self):
         params = self.nav.build_params()
         params['id'] = self.id
-        req = requests.Request('GET', f"{self.nav.url}/stream.view", params=params)
+        req = requests.Request('GET', f"{self.nav.url}/rest/stream.view", params=params)
         return req.prepare().url
 
 
@@ -226,7 +226,7 @@ class Navidrome:
         params = self.build_params()
         for elt in kw:
             params[elt] = kw[elt]
-        response = requests.get(f"{self.url}/{view}", params=params)
+        response = requests.get(f"{self.url}/rest/{view}", params=params)
         return response.json()
 
     @property
@@ -250,6 +250,10 @@ class Navidrome:
         data = self.request("getPlaylists.view")
         playlists = data['subsonic-response']['playlists']['playlist']
         return [Playlist(nav=self, **playlist) for playlist in playlists]
+
+    def search(self, query: str) -> dict:
+        return self.request("search3.view", query=query,
+                            artistCount=5, albumCount=10, songCount=20)
 
 
 class HelpOverlay(urwid.WidgetWrap):
@@ -382,6 +386,7 @@ class MusicBrowser:
         self.footer_columns = urwid.Columns([self.footer_left, self.footer_right])
 
         self.focus_list = [self.artist_listbox, self.album_listbox, self.song_listbox]
+        self.player = None
 
         self.left_panel = urwid.LineBox(self.artist_listbox, title="🎤 " + _("Artists"))
         self.top_right = urwid.LineBox(self.album_listbox, title="💿 " + _("Albums"))
