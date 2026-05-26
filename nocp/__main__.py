@@ -1,3 +1,18 @@
+import ctypes
+import os
+import sys
+
+if sys.platform == "darwin":
+    _vlc_lib_dir = "/Applications/VLC.app/Contents/MacOS/lib"
+    if os.path.isdir(_vlc_lib_dir):
+        for _lib in ("libvlccore.dylib", "libvlc.dylib"):
+            _lib_path = os.path.join(_vlc_lib_dir, _lib)
+            if os.path.exists(_lib_path):
+                try:
+                    ctypes.CDLL(_lib_path, mode=ctypes.RTLD_GLOBAL)
+                except OSError:
+                    pass
+
 import urwid
 import random
 import string
@@ -7,7 +22,6 @@ import vlc
 import argparse
 import configparser
 import click
-import os
 import time
 import feedparser
 import json
