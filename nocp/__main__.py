@@ -218,7 +218,7 @@ class PodcastEpisode(Generic):
 class Navidrome:
 
     def __init__(self, url, username, client, password, version):
-        self.url = url
+        self.url = url.rstrip('/').removesuffix('/rest')
         self.username = username
         self.client = client
         self.password = password
@@ -241,7 +241,13 @@ class Navidrome:
         for elt in kw:
             params[elt] = kw[elt]
         response = requests.get(f"{self.url}/rest/{view}", params=params)
-        return response.json()
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError as e:
+            raise RuntimeError(
+                f"Non-JSON response from {view} (HTTP {response.status_code}): "
+                f"{response.text[:200]!r}"
+            ) from e
 
     @property
     def artists(self):
@@ -517,9 +523,10 @@ class MusicBrowser:
     def on_artist_selected(self, button, artist):
         self.selected_artist = artist
         self.clear_selection(self.artist_listbox)
-        for btn in self.artist_listbox.body:
+        for idx, btn in enumerate(self.artist_listbox.body):
             if btn.get_label() == artist.name:
                 btn.set_selected(True)
+                self.artist_listbox.set_focus(idx)
                 break
         albums = artist.albums
         self.update_album_list(albums)
