@@ -503,9 +503,10 @@ class MusicBrowser:
     def on_artist_selected(self, button, artist):
         self.selected_artist = artist
         self.clear_selection(self.artist_listbox)
-        for btn in self.artist_listbox.body:
+        for i, btn in enumerate(self.artist_listbox.body):
             if btn.get_label() == artist.name:
                 btn.set_selected(True)
+                self.artist_listbox.focus_position = i
                 break
         albums = artist.albums
         self.update_album_list(albums)
@@ -515,9 +516,10 @@ class MusicBrowser:
     def on_album_selected(self, button, album):
         self.selected_album = album
         self.clear_selection(self.album_listbox)
-        for btn in self.album_listbox.body:
+        for i, btn in enumerate(self.album_listbox.body):
             if btn.get_label() == album.name:
                 btn.set_selected(True)
+                self.album_listbox.focus_position = i
                 break
         songs = album.songs
         self.update_song_list(songs)
